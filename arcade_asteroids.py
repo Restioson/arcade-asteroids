@@ -353,7 +353,7 @@ def choose_keyscheme():
 
     return c
 
-choice = "2"
+choice = choose_keyscheme()
 
 if choice == "1":
     KEY_FORWARD = arcade.key.W
