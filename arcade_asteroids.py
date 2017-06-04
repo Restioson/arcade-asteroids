@@ -228,7 +228,7 @@ class Asteroid:
         self.polygon = []
         self.side_ordinal = side_ordinal if side_ordinal is not None else random.randint(0, 3)
         self.size = size
-        self.sides = (3, 5, 7, 9)[self.side_ordinal]  # Prime numbered polygons
+        self.sides = (3, 5, 7, 11)[self.side_ordinal]  # Prime numbered polygons
         self.radius = abs(self.size / (2 * math.sin(180 / self.sides)))
 
         exterior_angle = math.radians(360 / self.sides)
