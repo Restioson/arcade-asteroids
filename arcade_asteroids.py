@@ -70,7 +70,7 @@ class Window(arcade.Window):
             self.player.turning = 2
 
         elif key == KEY_SHOOT and self.bullets_shot != 1:
-            self.bullets.append(Bullet(self.player.x, self.player.y, 3, self.player.angle))
+            self.bullets.append(Bullet(self.player.x, self.player.y, self.player.velocity + 2, self.player.angle))
             self.bullets_shot += 1
             arcade.play_sound(self.shoot_sound)
 
