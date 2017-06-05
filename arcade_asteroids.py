@@ -345,7 +345,7 @@ def choose_keyscheme():
     while True:
         c = input("WASD or arrow keys? (1/2) ")
 
-        if c != "1" and choice != "2":
+        if c != "1" and c != "2":
             print("Please input 1 or 2!")
 
         else:
