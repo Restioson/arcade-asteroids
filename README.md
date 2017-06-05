@@ -9,5 +9,8 @@ Shooting an asteroid will make its number of sides decrease to the next smallest
 # Controls
 WSAD or arrow keys (choose at startup) to move  and space to shoot. You move automatically, but W/Up will speed up your ship and turning. 
 
+# Requirements
+Requires Python 3.6, Arcade library, and AVBin. 
+
 # Credits
 To see credits for sounds, look in the comments in the main python file. 
