@@ -2,6 +2,7 @@ import arcade
 import random
 import time
 import math
+import pyglet
 
 KEY_FORWARD = arcade.key.W
 KEY_LEFT = arcade.key.A
@@ -30,22 +31,28 @@ class Window(arcade.Window):
         self.last_asteroid_hit = time.time()
         self.shown_screen_time = 0
         self.game_screen = "asteroids"
+        self.has_sound = True
 
         arcade.load_sound_library()
-        # LICENSED UNDER CC BY 3.0
-        # https://www.freesound.org/people/ani_music/sounds/219619/
-        # https://creativecommons.org/licenses/by/3.0/legalcode
-        self.shoot_sound = arcade.load_sound("pew.wav")
 
-        # LICENSED UNDER CC 0
-        # https://www.freesound.org/people/Xenonn/sounds/128302/
-        self.asteroid_hit_sound = arcade.load_sound("asteroid_hit.wav")
+        try:
+            # LICENSED UNDER CC BY 3.0
+            # https://www.freesound.org/people/ani_music/sounds/219619/
+            # https://creativecommons.org/licenses/by/3.0/legalcode
+            self.shoot_sound = arcade.load_sound("pew.wav")
 
-        # LICENSED UNDER CC BY 3.0
-        # https://www.freesound.org/people/bone666138/sounds/198876/
-        # Converted from aiff to wav
-        # https://creativecommons.org/licenses/by/3.0/legalcode
-        self.death_sound = arcade.load_sound("death.wav")
+            # LICENSED UNDER CC 0
+            # https://www.freesound.org/people/Xenonn/sounds/128302/
+            self.asteroid_hit_sound = arcade.load_sound("asteroid_hit.wav")
+
+            # LICENSED UNDER CC BY 3.0
+            # https://www.freesound.org/people/bone666138/sounds/198876/
+            # Converted from aiff to wav
+            # https://creativecommons.org/licenses/by/3.0/legalcode
+            self.death_sound = arcade.load_sound("death.wav")
+
+        except pyglet.media.MediaFormatException:
+            self.has_sound = False
 
     def spawn_asteroids(self):
 
@@ -72,7 +79,9 @@ class Window(arcade.Window):
         elif key == KEY_SHOOT and self.bullets_shot != 1:
             self.bullets.append(Bullet(self.player.x, self.player.y, self.player.velocity + 2, self.player.angle))
             self.bullets_shot += 1
-            arcade.play_sound(self.shoot_sound)
+
+            if self.has_sound:
+                arcade.play_sound(self.shoot_sound)
 
     def on_key_release(self, key: int, modifiers: int):
 
@@ -99,14 +108,16 @@ class Window(arcade.Window):
 
                     self.asteroids.remove(asteroid)
 
-                if asteroid.radius > 9 and \
+                if asteroid.size > 9 and \
                         arcade.geometry.are_polygons_intersecting(asteroid.transformed_polygon,
                                                                   self.player.bounding_box):
 
                     if time.time() - self.last_death > 5:
                         self.lives -= 1
                         self.last_death = time.time()
-                        arcade.play_sound(self.death_sound)
+
+                        if self.has_sound:
+                            arcade.play_sound(self.death_sound)
 
             for bullet in self.bullets:
                 bullet.update()
@@ -116,7 +127,7 @@ class Window(arcade.Window):
 
                 for asteroid in self.asteroids:
                     if arcade.geometry.are_polygons_intersecting(asteroid.transformed_polygon,
-                                                                 bullet.transformed_polygon):
+                                                                 bullet.transformed_polygon) and asteroid.size > 3:
 
                         # Bullet has hit asteroid, split asteroid up into two of the next prime asteroid
 
@@ -150,14 +161,17 @@ class Window(arcade.Window):
                             size=asteroid.size / 2
                         )
 
-                        if len(self.asteroids) < 200 or asteroid_a.size > 3:
+                        if len(self.asteroids) < 100 or asteroid_a.size > 3:
                             self.asteroids.append(asteroid_a)
                             self.asteroids.append(asteroid_b)
 
                         self.asteroids.remove(asteroid)
 
                         if time.time() - self.last_asteroid_hit > 0.5:
-                            arcade.play_sound(self.asteroid_hit_sound)
+
+                            if self.has_sound:
+                                arcade.play_sound(self.asteroid_hit_sound)
+
                             self.last_asteroid_hit = time.time()
 
                         print("Boom!")
@@ -166,7 +180,7 @@ class Window(arcade.Window):
                 self.bullets_shot = 0
                 self.time_accumulator = 0
 
-            if len(self.asteroids) == 0:
+            if len([1 for a in self.asteroids if a.size > 9]) == 0:
                 self.game_screen = "next_level"
 
             if self.lives <= 0:
