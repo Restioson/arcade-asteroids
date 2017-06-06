@@ -3,18 +3,20 @@ import random
 import time
 import math
 import pyglet
+import itertools
 
-KEY_FORWARD = arcade.key.W
-KEY_LEFT = arcade.key.A
-KEY_RIGHT = arcade.key.D
-KEY_SHOOT = arcade.key.SPACE
+
+KEY_FORWARD = (arcade.key.W, arcade.key.UP)
+KEY_LEFT = (arcade.key.A, arcade.key.LEFT)
+KEY_RIGHT = (arcade.key.D, arcade.key.RIGHT)
+KEY_SHOOT = (arcade.key.SPACE,)
 
 
 class Window(arcade.Window):
 
     def __init__(self, width, height):
 
-        super().__init__(width, height, title="Asteroids!")
+        super().__init__(width, height, "Asteroids!")
         self.level = 1
 
         self.player = Player(self.width / 2, self.height / 2, 0)
@@ -32,6 +34,7 @@ class Window(arcade.Window):
         self.shown_screen_time = 0
         self.game_screen = "asteroids"
         self.has_sound = True
+        self.score = 0
 
         arcade.load_sound_library()
 
@@ -66,31 +69,29 @@ class Window(arcade.Window):
 
     def on_key_press(self, key, modifiers):
 
-        if key == KEY_FORWARD:
-            self.player.velocity *= 5
-            self.player.turning *= 2
+        if key in KEY_FORWARD:
+            self.player.velocity = 5
 
-        elif key == KEY_LEFT:
+        elif key in KEY_LEFT:
             self.player.turning = -2
 
-        elif key == KEY_RIGHT:
+        elif key in KEY_RIGHT:
             self.player.turning = 2
 
-        elif key == KEY_SHOOT and self.bullets_shot != 1:
+        elif key in KEY_SHOOT and self.bullets_shot != 1:
             self.bullets.append(Bullet(self.player.x, self.player.y, self.player.velocity + 2, self.player.angle))
-            self.bullets_shot += 1
+            self.bullets_shot = 1
 
             if self.has_sound:
                 arcade.play_sound(self.shoot_sound)
 
-    def on_key_release(self, key: int, modifiers: int):
+    def on_key_release(self, key, modifiers):
 
-        if key in (KEY_LEFT, KEY_RIGHT):
+        if key in itertools.chain(KEY_LEFT, KEY_RIGHT):
             self.player.turning = 0
 
-        elif key == KEY_FORWARD:
-            self.player.velocity /= 5
-            self.player.turning /= 2
+        elif key in KEY_FORWARD:
+            self.player.velocity = 1
 
     def on_draw(self):
 
@@ -114,6 +115,7 @@ class Window(arcade.Window):
 
                     if time.time() - self.last_death > 5:
                         self.lives -= 1
+                        self.score -= 10
                         self.last_death = time.time()
 
                         if self.has_sound:
@@ -128,6 +130,9 @@ class Window(arcade.Window):
                 for asteroid in self.asteroids:
                     if arcade.geometry.are_polygons_intersecting(asteroid.transformed_polygon,
                                                                  bullet.transformed_polygon) and asteroid.size > 3:
+
+                        if asteroid.size > 9:
+                            self.score += 5
 
                         # Bullet has hit asteroid, split asteroid up into two of the next prime asteroid
 
@@ -190,8 +195,11 @@ class Window(arcade.Window):
 
         if self.game_screen == "death":
 
-            arcade.draw_text("GAME OVER", self.width / 2 - 100, self.height / 2, arcade.color.WHITE, font_size=24,
-                             font_name="courier new")
+            arcade.draw_text("GAME OVER", self.width / 2 - 100, self.height / 2, arcade.color.WHITE,
+                             font_size=24, font_name="courier new")
+            arcade.draw_text("SCORE: {0}".format(self.score), self.width / 2 - 100, self.height / 2 - 75, arcade.color.WHITE,
+                             font_size=24, font_name="courier new")
+
             return
 
         elif self.game_screen == "next_level":
@@ -199,21 +207,22 @@ class Window(arcade.Window):
             if self.shown_screen_time == 0:
                 self.level += 1
                 self.shown_screen_time = time.time()
-                arcade.draw_text(f"LEVEL {self.level}",
-                                 self.width / 2 - 100, self.height / 2, arcade.color.WHITE,
+                arcade.draw_text("LEVEL {0}".format(self.level),
+                                 self.width / 2 - 75, self.height / 2, arcade.color.WHITE,
                                  font_size=24, font_name="courier new")
 
                 self.shown_screen_time = time.time()
 
             elif time.time() - self.shown_screen_time > 3:
 
+                self.score += 20
                 self.game_screen = "asteroids"
                 self.spawn_asteroids()
                 self.shown_screen_time = 0
 
             else:
-                arcade.draw_text(f"LEVEL {self.level}",
-                                 self.width / 2 - 100, self.height / 2, arcade.color.WHITE,
+                arcade.draw_text("LEVEL {0}".format(self.level),
+                                 self.width / 2 - 75, self.height / 2, arcade.color.WHITE,
                                  font_size=24, font_name="courier new")
                 self.shown_screen_time += time.time() - self.last_frame_time
 
@@ -227,7 +236,8 @@ class Window(arcade.Window):
 
         self.player.render()
 
-        arcade.draw_text(f"LIVES: {self.lives}", 0, 10, arcade.color.WHITE, font_size=24, font_name="courier new")
+        arcade.draw_text("LIVES: {0}".format(self.lives), 0, 15, arcade.color.WHITE, font_size=24, font_name="courier new")
+        arcade.draw_text("SCORE: {0}".format(self.score), 0, self.height - 25, arcade.color.WHITE, font_size=24, font_name="courier new")
 
 
 class Asteroid:
@@ -353,31 +363,6 @@ class Player:
 
         arcade.draw_texture_rectangle(self.x, self.y, 20, 20, self.texture, -self.angle, alpha=5, transparent=True)
 
-
-def choose_keyscheme():
-
-    while True:
-        c = input("WASD or arrow keys? (1/2) ")
-
-        if c != "1" and c != "2":
-            print("Please input 1 or 2!")
-
-        else:
-            break
-
-    return c
-
-choice = choose_keyscheme()
-
-if choice == "1":
-    KEY_FORWARD = arcade.key.W
-    KEY_LEFT = arcade.key.A
-    KEY_RIGHT = arcade.key.D
-
-else:
-    KEY_FORWARD = arcade.key.UP
-    KEY_LEFT = arcade.key.LEFT
-    KEY_RIGHT = arcade.key.RIGHT
 
 w, h = 640, 500
 window = Window(w, h)
