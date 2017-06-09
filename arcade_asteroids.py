@@ -19,7 +19,7 @@ class Window(arcade.Window):
     def __init__(self, width, height):
 
         super().__init__(width, height, "Asteroids!")
-        self.level = 1
+        self.level = 0
 
         self.player = Player(self.width / 2, self.height / 2, 0)
         self.bullets = []
@@ -37,6 +37,7 @@ class Window(arcade.Window):
         self.game_screen = "asteroids"
         self.has_sound = True
         self.score = 0
+        self.last_blink = 0
 
         arcade.load_sound_library()
 
@@ -73,32 +74,35 @@ class Window(arcade.Window):
     def on_key_press(self, key, modifiers):
         """Handle controls"""
 
-        if key in KEY_FORWARD:
-            self.player.velocity = 5
+        if self.game_screen == "asteroids":
+            if key in KEY_FORWARD:
+                self.player.velocity = 5
 
-        elif key in KEY_LEFT:
-            self.player.turning = -2
+            elif key in KEY_LEFT:
+                self.player.turning = -2
 
-        elif key in KEY_RIGHT:
-            self.player.turning = 2
+            elif key in KEY_RIGHT:
+                self.player.turning = 2
 
-        elif key in KEY_SHOOT and self.bullets_shot != 1:
-            self.bullets.append(Bullet(self.player.x, self.player.y, self.player.velocity + 2, self.player.angle))
-            self.bullets_shot = 1
+            elif key in KEY_SHOOT and self.bullets_shot != 1:
+                self.bullets.append(Bullet(self.player.x, self.player.y, self.player.velocity + 2, self.player.angle))
+                self.bullets_shot = 1
 
-            if self.has_sound:
-                arcade.play_sound(self.shoot_sound)
+                if self.has_sound:
+                    arcade.play_sound(self.shoot_sound)
 
         # If dead and key is pressed restart
-        if self.game_screen == "death" and time.time() - self.shown_screen_time > 3:
+        elif self.game_screen == "death" and time.time() - self.shown_screen_time > 3:
 
             self.lives = 10
             self.score = 0
+            self.level = 0
             self.player.x = 0
             self.player.y = 0
             self.bullets = []
             self.spawn_asteroids()
             self.game_screen = "asteroids"
+            self.last_death = time.time()
 
     def on_key_release(self, key, modifiers):
         """Handle controls"""
@@ -154,6 +158,7 @@ class Window(arcade.Window):
                         self.lives -= 1
                         self.score -= 10
                         self.last_death = time.time()
+                        self.last_blink = time.time()
 
                         if self.has_sound:
                             arcade.play_sound(self.death_sound)
@@ -240,6 +245,9 @@ class Window(arcade.Window):
         # Show death screen
         if self.game_screen == "death":
 
+            if self.shown_screen_time == 0:
+                self.shown_screen_time = time.time()
+
             self.shown_screen_time += time.time() - self.last_frame_time
 
             arcade.draw_text("GAME OVER", self.width / 2 - 100, self.height / 2, arcade.color.WHITE,
@@ -262,15 +270,15 @@ class Window(arcade.Window):
                                  self.width / 2 - 75, self.height / 2, arcade.color.WHITE,
                                  font_size=24, font_name="courier new")
 
-                self.shown_screen_time = time.time()
-
             # Actually go to next level
             elif time.time() - self.shown_screen_time > 3:
 
                 self.score += 20
                 self.game_screen = "asteroids"
+                self.bullets = []
                 self.spawn_asteroids()
                 self.shown_screen_time = 0
+                self.last_death = time.time()
 
             else:
                 arcade.draw_text("LEVEL {0}".format(self.level),
@@ -286,7 +294,17 @@ class Window(arcade.Window):
             for bullet in self.bullets:
                 bullet.render()
 
-            self.player.render()
+            # Set last blink cycle time
+            if time.time() - self.last_death < 5 and time.time() - self.last_blink > 0.35:
+                self.last_blink = time.time()
+
+            # Draw if blink is in "draw half"
+            elif time.time() - self.last_blink < 0.2:
+                self.player.render()
+
+            # Draw if time - last death time > 5
+            elif time.time() - self.last_death > 5:
+                self.player.render()
 
             arcade.draw_text("LIVES: {0}".format(self.lives), 0, 15, arcade.color.WHITE, font_size=24, font_name="courier new")
             arcade.draw_text("SCORE: {0}".format(self.score), 0, self.height - 25, arcade.color.WHITE, font_size=24, font_name="courier new")
