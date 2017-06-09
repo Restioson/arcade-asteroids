@@ -89,6 +89,17 @@ class Window(arcade.Window):
             if self.has_sound:
                 arcade.play_sound(self.shoot_sound)
 
+        # If dead and key is pressed restart
+        if self.game_screen == "death" and time.time() - self.shown_screen_time > 3:
+
+            self.lives = 10
+            self.score = 0
+            self.player.x = 0
+            self.player.y = 0
+            self.bullets = []
+            self.spawn_asteroids()
+            self.game_screen = "asteroids"
+
     def on_key_release(self, key, modifiers):
         """Handle controls"""
 
@@ -229,10 +240,17 @@ class Window(arcade.Window):
         # Show death screen
         if self.game_screen == "death":
 
+            self.shown_screen_time += time.time() - self.last_frame_time
+
             arcade.draw_text("GAME OVER", self.width / 2 - 100, self.height / 2, arcade.color.WHITE,
                              font_size=24, font_name="courier new")
             arcade.draw_text("SCORE: {0}".format(self.score), self.width / 2 - 100, self.height / 2 - 75, arcade.color.WHITE,
                              font_size=24, font_name="courier new")
+
+            if time.time() - self.shown_screen_time > 3:
+
+                arcade.draw_text("PRESS ANY KEY TO PLAY AGAIN", self.width / 2 - 275, self.height / 2 - 150, arcade.color.WHITE,
+                                 font_size=24, font_name="courier new")
 
         # Show next level screen
         elif self.game_screen == "next_level":
