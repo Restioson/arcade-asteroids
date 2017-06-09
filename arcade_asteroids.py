@@ -6,6 +6,7 @@ import pyglet
 import itertools
 
 
+# Tuples of keys for controls
 KEY_FORWARD = (arcade.key.W, arcade.key.UP)
 KEY_LEFT = (arcade.key.A, arcade.key.LEFT)
 KEY_RIGHT = (arcade.key.D, arcade.key.RIGHT)
@@ -13,6 +14,7 @@ KEY_SHOOT = (arcade.key.SPACE,)
 
 
 class Window(arcade.Window):
+    """Window. Manages main game class"""
 
     def __init__(self, width, height):
 
@@ -58,6 +60,7 @@ class Window(arcade.Window):
             self.has_sound = False
 
     def spawn_asteroids(self):
+        """Populate self.asteroids with random asteroids"""
 
         self.asteroids = [
             Asteroid(
@@ -68,6 +71,7 @@ class Window(arcade.Window):
         ]
 
     def on_key_press(self, key, modifiers):
+        """Handle controls"""
 
         if key in KEY_FORWARD:
             self.player.velocity = 5
@@ -86,6 +90,7 @@ class Window(arcade.Window):
                 arcade.play_sound(self.shoot_sound)
 
     def on_key_release(self, key, modifiers):
+        """Handle controls"""
 
         if key in itertools.chain(KEY_LEFT, KEY_RIGHT):
             self.player.turning = 0
@@ -94,25 +99,46 @@ class Window(arcade.Window):
             self.player.velocity = 1
 
     def on_draw(self):
+        """Update and draw the game"""
 
+        # Add to the counter which is used to limit bullets and time screen cahnges
         self.time_accumulator += time.time() - self.last_frame_time
         self.last_frame_time = time.time()
 
+        # Game screen is asteroids - update main game logic
         if self.game_screen == "asteroids":
+
+            # Update player
             self.player.update()
 
+            # Update asteroids
             for asteroid in self.asteroids:
                 asteroid.update()
 
+                """
+                Remove the asteroid if it is out of bounds
+
+                This will only happen if the asteroid has not bounced automatically in Asteroid#update
+                which will only occur if it is too small
+
+                1) Check if asteroid is out of x upper bound
+                2) Check if asteroid is out of x lower bound
+                3) Check if asteroid is out of y upper bound
+                4) Check if asteroid is out of y lower bound
+
+                """
                 if (asteroid.x > w + asteroid.radius * 2) or (asteroid.x < -asteroid.radius * 2) or \
                         (asteroid.y > h + asteroid.radius * 2) or (asteroid.y < -asteroid.radius * 2):
 
                     self.asteroids.remove(asteroid)
 
+                # Check if asteroid is colliding with player
+                # Only do so if the asteroid is not space debris, i.e has size > 9
                 if asteroid.size > 9 and \
                         arcade.geometry.are_polygons_intersecting(asteroid.transformed_polygon,
                                                                   self.player.bounding_box):
 
+                    # Give player immunity for 5 seconds after death
                     if time.time() - self.last_death > 5:
                         self.lives -= 1
                         self.score -= 10
@@ -121,21 +147,24 @@ class Window(arcade.Window):
                         if self.has_sound:
                             arcade.play_sound(self.death_sound)
 
+            # Update bullets
             for bullet in self.bullets:
                 bullet.update()
 
+                # Make sure bullets aren't out of bounds; destroy if they are
                 if bullet.x > w or bullet.x < 0 or bullet.y > h or bullet.y < 0:
                     self.bullets.remove(bullet)
 
+                # Check for collisions between bullets and asteroids
                 for asteroid in self.asteroids:
                     if arcade.geometry.are_polygons_intersecting(asteroid.transformed_polygon,
                                                                  bullet.transformed_polygon) and asteroid.size > 3:
 
+                        # Only add to score if they are not debris, i.e size > 9
                         if asteroid.size > 9:
                             self.score += 5
 
                         # Bullet has hit asteroid, split asteroid up into two of the next prime asteroid
-
                         sides = asteroid.side_ordinal - 1 if asteroid.side_ordinal - 1 != -1 else 0
 
                         asteroid_a = Asteroid(
@@ -181,18 +210,23 @@ class Window(arcade.Window):
 
                         print("Boom!")
 
+            # Reset bullet count
+            # This prevents spamming bullets
             if self.time_accumulator > 1:
                 self.bullets_shot = 0
                 self.time_accumulator = 0
 
+            # Go to next level if big asteroids are destroyed
             if len([1 for a in self.asteroids if a.size > 9]) == 0:
                 self.game_screen = "next_level"
 
             if self.lives <= 0:
                 self.game_screen = "death"
 
+        # Render game
         arcade.start_render()
 
+        # Show death screen
         if self.game_screen == "death":
 
             arcade.draw_text("GAME OVER", self.width / 2 - 100, self.height / 2, arcade.color.WHITE,
@@ -200,8 +234,7 @@ class Window(arcade.Window):
             arcade.draw_text("SCORE: {0}".format(self.score), self.width / 2 - 100, self.height / 2 - 75, arcade.color.WHITE,
                              font_size=24, font_name="courier new")
 
-            return
-
+        # Show next level screen
         elif self.game_screen == "next_level":
 
             if self.shown_screen_time == 0:
@@ -213,6 +246,7 @@ class Window(arcade.Window):
 
                 self.shown_screen_time = time.time()
 
+            # Actually go to next level
             elif time.time() - self.shown_screen_time > 3:
 
                 self.score += 20
@@ -226,21 +260,22 @@ class Window(arcade.Window):
                                  font_size=24, font_name="courier new")
                 self.shown_screen_time += time.time() - self.last_frame_time
 
-            return
+        # Show main game screen
+        elif self.game_screen == "asteroids":
+            for asteroid in self.asteroids:
+                asteroid.render()
 
-        for asteroid in self.asteroids:
-            asteroid.render()
+            for bullet in self.bullets:
+                bullet.render()
 
-        for bullet in self.bullets:
-            bullet.render()
+            self.player.render()
 
-        self.player.render()
-
-        arcade.draw_text("LIVES: {0}".format(self.lives), 0, 15, arcade.color.WHITE, font_size=24, font_name="courier new")
-        arcade.draw_text("SCORE: {0}".format(self.score), 0, self.height - 25, arcade.color.WHITE, font_size=24, font_name="courier new")
+            arcade.draw_text("LIVES: {0}".format(self.lives), 0, 15, arcade.color.WHITE, font_size=24, font_name="courier new")
+            arcade.draw_text("SCORE: {0}".format(self.score), 0, self.height - 25, arcade.color.WHITE, font_size=24, font_name="courier new")
 
 
 class Asteroid:
+    """Class representing an asteroid"""
 
     def __init__(self, x, y, v_x, v_y, side_ordinal=None, size=random.randint(20, 25)):
 
@@ -267,9 +302,14 @@ class Asteroid:
 
     @property
     def transformed_polygon(self):
+        """
+        Polygon which represents where the asteroid actually is, not just the shape
+        Relative to 0, 0
+        """
         return [(x + self.x, y + self.y) for x, y in self.polygon]
 
     def update(self):
+        """Update asteroid"""
 
         self.x += self.v_y
         self.y += self.v_x
@@ -278,15 +318,18 @@ class Asteroid:
 
         for x, y in self.transformed_polygon:
 
+            # Bounce if point is out of bounds
             if x > w or x < 0 or y > h or y < 0:
                 bounce = True
                 break
 
+        # Only bounce if not space debris, i.e size > 9
         if bounce and self.size > 9:
             self.v_x *= -1
             self.v_y *= -1
 
     def render(self):
+        """Render asteroid"""
 
         polygon = [(x + self.x, y + self.y) for x, y in self.polygon]
 
@@ -294,6 +337,7 @@ class Asteroid:
 
 
 class Bullet:
+    """Class representing a bullet"""
 
     def __init__(self, x, y, velocity, direction):
 
@@ -305,6 +349,10 @@ class Bullet:
 
     @property
     def transformed_polygon(self):
+        """
+        Polygon which represents where the bullet actually is, not just its shape
+        Relative to 0, 0
+        """
 
         return (
             (self.x, self.y),
@@ -313,6 +361,7 @@ class Bullet:
         )
 
     def update(self):
+        """Update bullet"""
 
         self.angle %= 360
 
@@ -320,6 +369,7 @@ class Bullet:
         self.y += self.velocity * math.cos(math.radians(self.angle))
 
     def render(self):
+        """Render bullet"""
 
         arcade.draw_triangle_outline(
             self.x, self.y,
@@ -330,6 +380,7 @@ class Bullet:
 
 
 class Player:
+    """Class representing player"""
 
     def __init__(self, x, y, direction):
 
@@ -343,12 +394,15 @@ class Player:
 
     @property
     def bounding_box(self):
+        """Bounding box of player, relative to 0,0"""
+
         return [(self.x + 10, self.y + 10),
                 (self.x - 10, self.y + 10),
                 (self.x - 10, self.y - 10),
                 (self.x + 10, self.y - 10)]
 
     def update(self):
+        """Update player"""
 
         self.angle += self.turning
         self.angle %= 360
@@ -360,10 +414,11 @@ class Player:
         self.y %= h + 10
 
     def render(self):
+        """Render player"""
 
         arcade.draw_texture_rectangle(self.x, self.y, 20, 20, self.texture, -self.angle, alpha=5, transparent=True)
 
-
+# Set up game
 w, h = 640, 500
 window = Window(w, h)
 time.sleep(1)  # Sleep to wait for window to open
@@ -371,4 +426,5 @@ time.sleep(1)  # Sleep to wait for window to open
 arcade.set_window(window)
 window.player.velocity = 1
 
+# Run game
 arcade.run()
