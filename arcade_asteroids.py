@@ -39,8 +39,6 @@ class Window(arcade.Window):
         self.score = 0
         self.last_blink = 0
 
-        arcade.load_sound_library()
-
         try:
             # LICENSED UNDER CC BY 3.0
             # https://www.freesound.org/people/ani_music/sounds/219619/
@@ -452,7 +450,7 @@ class Player:
     def render(self):
         """Render player"""
 
-        arcade.draw_texture_rectangle(self.x, self.y, 20, 20, self.texture, -self.angle, alpha=5, transparent=True)
+        arcade.draw_texture_rectangle(self.x, self.y, 20, 20, self.texture, -self.angle, alpha=255)
 
 # Set up game
 w, h = 640, 500
